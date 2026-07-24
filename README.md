@@ -1,7 +1,8 @@
-# Maze Solver Robot - HFU 2025/26 - Farzaneh
+# Maze Solver Robot - HFU 2025/26
 
 Mechatronic Project: Maze Solver Robot
 Furtwangen University - Biomedical Engineering - WS25/26
+
 By: Mehdi Farzaneh
 
 ---
