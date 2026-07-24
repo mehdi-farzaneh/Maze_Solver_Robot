@@ -1,242 +1,148 @@
-#include "VL53L0X.h" 
+
 #include "Wire.h"
+#include "MazeRobotLibrary.h"
 
-class ToF_Sensor
-{
-  byte address;
-  byte pin;
-  VL53L0X dis_sensor;
- public:
- ToF_Sensor(byte sensor_address, byte SHT_pin){
-    address = sensor_address;
-    pin = SHT_pin;
-  }
+// ============================================================================
+// SENSOR INSTANCES
+// ============================================================================
 
- void begin(){
-   pinMode(pin,OUTPUT);
-   digitalWrite(pin,LOW);
-   delay(10);
-  }
-  void Change_Adrs(){
-   digitalWrite(pin,HIGH);
-   delay(10);
-   dis_sensor.setAddress((uint8_t)address);
-   digitalWrite(pin,LOW);
-  }
-  void init(){
-   digitalWrite(pin,HIGH);
-   if(!dis_sensor.init()){ 
-     while(1); 
-  }
-  //continuous measurement in HIGH ACCURACY Mode  
-   dis_sensor.setTimeout(500);
-   dis_sensor.setMeasurementTimingBudget(200000); 
-   dis_sensor.startContinuous(); 
-  }
- int distance(){
-   return dis_sensor.readRangeContinuousMillimeters(); 
- }
-};
-
-class Us_Sensor
-{
-  byte Trig;
-  byte Echo;
- public:
- Us_Sensor(byte Trig_pin, byte Echo_pin){
-    Trig = Trig_pin;
-    Echo = Echo_pin;
-  }
-
- void begin(){
-    pinMode(Echo, INPUT);
-    pinMode(Trig, OUTPUT);
-  }
- long distance(){
-  digitalWrite(Trig, LOW);
-  delayMicroseconds(2);
-  digitalWrite(Trig, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(Trig, LOW);
-  long duration = pulseIn(Echo, HIGH); // timeout 20ms
-  return duration * 0.34 / 2; // Convert to mm
- }
-};
-
-class DC_Motor
-{
-  byte RM_1;
-  byte RM_2;
-  byte RM_enable;
-  byte LM_1;
-  byte LM_2;
-  byte LM_enable;
-  byte PWM;
- public:
- DC_Motor(byte rm_1, byte rm_2, byte rm_en, byte lm_1, byte lm_2, byte lm_en){
-  RM_1 = rm_1;
-  RM_2 = rm_2;
-  RM_enable = rm_en;
-  LM_1 = lm_1;
-  LM_2 = lm_2;
-  LM_enable = lm_en;
- }
-
- void begin(){
-  pinMode(RM_1, OUTPUT);
-  pinMode(RM_2, OUTPUT);
-  pinMode(RM_enable, OUTPUT);
-  pinMode(LM_1, OUTPUT);
-  pinMode(LM_2, OUTPUT);
-  pinMode(LM_enable, OUTPUT);
- }
- void turn_right(byte PWM) {// Turn right 90 deg if no wall on the right
-    analogWrite(RM_enable, PWM);
-    digitalWrite(RM_1, LOW);
-    digitalWrite(RM_2, HIGH);
-    analogWrite(LM_enable, PWM);
-    digitalWrite(LM_1, HIGH);
-    digitalWrite(LM_2, LOW);
- }
- void turn_around(byte PWM) {// Turn 180 deg if wall Ahead and on the Right
-    analogWrite(RM_enable, PWM);
-    digitalWrite(RM_1, LOW);
-    digitalWrite(RM_2, HIGH);
-    analogWrite(LM_enable, PWM);
-    digitalWrite(LM_1, HIGH);
-    digitalWrite(LM_2, LOW);
- }
-
- void move_forward(byte PWM){// move forward 
-    analogWrite(RM_enable, PWM);
-    digitalWrite(RM_1, HIGH);
-    digitalWrite(RM_2, LOW);
-    analogWrite(LM_enable, PWM);
-    digitalWrite(LM_1, HIGH);
-    digitalWrite(LM_2, LOW);
- }
-  void tilt_right(byte PWM) {// Turn right a few deg 
-    analogWrite(RM_enable, PWM);
-    digitalWrite(RM_1, LOW);
-    digitalWrite(RM_2, HIGH);
-    analogWrite(LM_enable, PWM);
-    digitalWrite(LM_1, HIGH);
-    digitalWrite(LM_2, LOW);
- }
-  void tilt_left(byte PWM) {// Turn left a few deg 
-    analogWrite(RM_enable, PWM);
-    digitalWrite(RM_1, HIGH);
-    digitalWrite(RM_2, LOW);
-    analogWrite(LM_enable, PWM);
-    digitalWrite(LM_1, LOW);
-    digitalWrite(LM_2, HIGH);
- }
- void Stop() {
-  analogWrite(RM_enable, 0);
-  analogWrite(LM_enable, 0);
-  delay(500);
- }
-};
-
-/*   // Uncomments this if ToF sensor is used
-ToF_Sensor Left_sen(21,2);  // right ToF sensor
-ToF_Sensor Mid_sen(22,4);  // mid ToF sensor
-ToF_Sensor Right_sen(23,3);  // left ToF sensor
+/* Uncomment if using ToF (Time of Flight) sensors instead of ultrasonic
+ToFSensor leftSensor(21, 2);    // left ToF sensor (address 21, shutdown pin 2)
+ToFSensor midSensor(22, 4);     // center ToF sensor (address 22, shutdown pin 4)
+ToFSensor rightSensor(23, 3);   // right ToF sensor (address 23, shutdown pin 3)
 */
 
-Us_Sensor Right_sen(2,3);  // right ultrasound sensor
-Us_Sensor Mid_sen(4,5);  // mid ultrasound sensor
-Us_Sensor Left_sen(6,7);  // left ultrasound sensor
+// Ultrasonic (HC-SR04) sensors for distance measurement
+UltrasonicSensor rightSensor(2, 3);   // right sensor (trigger 2, echo 3)
+UltrasonicSensor midSensor(4, 5);     // center sensor (trigger 4, echo 5)
+UltrasonicSensor leftSensor(6, 7);    // left sensor (trigger 6, echo 7)
 
-DC_Motor Motor(9,8,10,7,12,11); // pins 8-9 for right_motor and 13-12 for left_motor
-                                // pins 10 and 11 for PWM write
-#define Photo_Resistor A0
+// ============================================================================
+// MOTOR INSTANCE
+// ============================================================================
 
-// Initial values
-#define Side_Wall 75 // Distance threshold in mm - Needs callibration 
-#define Front_Wall 75 // Distance threshold in mm - Needs callibration 
-bool Black_Spot = false;
-#define Low_Resistance 350 // resistance of the Photo_Resistor sensor when reaches a black surface
-#define move_speed 65 // motor speed in PWM
+// Dual DC motor controller via L298N driver
+// Right motor: direction pins 8-9, PWM pin 10
+// Left motor: direction pins 7-12, PWM pin 11
+DCMotor motor(9, 8, 10, 7, 12, 11);
+
+// ============================================================================
+// SENSOR CALIBRATION PARAMETERS
+// ============================================================================
+
+#define PHOTO_RESISTOR A0              // Photo resistor analog input pin
+#define SIDE_WALL_THRESHOLD 75         // Distance to side walls (mm) - requires calibration
+#define FRONT_WALL_THRESHOLD 75        // Distance to front wall (mm) - requires calibration
+#define BLACK_SPOT_THRESHOLD 350       // Photo resistor resistance value at black surface
+#define MOTOR_SPEED 65                 // Motor PWM speed (0-255)
+
+// ============================================================================
+// STATE VARIABLES
+// ============================================================================
+
+bool atBlackSpot = false;              // Maze completion flag
 
 void setup() {
- Wire.begin();
- // configuring the distance sensors
- Right_sen.begin();
- Mid_sen.begin();
- Left_sen.begin();
+  Wire.begin();
 
- /*    // Uncomments this if ToF sensor is used
- Left_sen.Change_Adrs();
- Mid_sen.Change_Adrs();
- Right_sen.Change_Adrs();
- Left_sen.init();
- Mid_sen.init();
- Right_sen.init();
- */
- // configuring the 2 DC motors
- Motor.begin();
- Motor.Stop();
+  // ========================================================================
+  // Initialize distance sensors
+  // ========================================================================
+  rightSensor.begin();
+  midSensor.begin();
+  leftSensor.begin();
 
- pinMode(Photo_Resistor,INPUT);
+  /* Uncomment if using ToF sensors instead of ultrasonic sensors
+  rightSensor.changeAddress();
+  midSensor.changeAddress();
+  leftSensor.changeAddress();
+  rightSensor.init();
+  midSensor.init();
+  leftSensor.init();
+  */
+
+  // ========================================================================
+  // Initialize motors
+  // ========================================================================
+  motor.begin();
+  motor.stop();  // Ensure motors start in stopped state
+
+  // ========================================================================
+  // Initialize black spot detection sensor
+  // ========================================================================
+  pinMode(PHOTO_RESISTOR, INPUT);
 }
 
 void loop() {
-  // check if the robot is at the end point
-  if (analogRead(Photo_Resistor) > Low_Resistance){
-   Black_Spot = true;
-  }
-  else {
-    Black_Spot = false;
-  }
+  // ========================================================================
+  // Check if maze is completed (black spot detected)
+  // ========================================================================
+  atBlackSpot = (analogRead(PHOTO_RESISTOR) > BLACK_SPOT_THRESHOLD);
 
-  while(!Black_Spot){ // if not at the end point
-  // again check if the robot is at the end point
-  if (analogRead(Photo_Resistor) > Low_Resistance){
-   Black_Spot = true;
-   Motor.Stop();
-   break;
-  }
+  // Main maze solving loop - continues until black spot is reached
+  while (!atBlackSpot) {
+    // ====================================================================
+    // Periodic check for completion signal
+    // ====================================================================
+    if (analogRead(PHOTO_RESISTOR) > BLACK_SPOT_THRESHOLD) {
+      atBlackSpot = true;
+      motor.stop();
+      break;
+    }
 
-  int right_dis = Right_sen.distance();
-  int front_dis = Mid_sen.distance();
-  int left_dis = Left_sen.distance();
+    // ====================================================================
+    // Read distance measurements from all three sensors
+    // ====================================================================
+    int rightDistance = rightSensor.distance();
+    int frontDistance = midSensor.distance();
+    int leftDistance = leftSensor.distance();
 
-  if (front_dis < Front_Wall){
-    Motor.Stop();
-   }
-  // Adjustment to stay in the middle if there is more than 10 mm difference between right & left
-  if (right_dis - left_dis > 10){
-    Motor.tilt_right(move_speed);
-    delay(250); // wait for tilting
-    break;
-  }
-  else if (left_dis - right_dis > 10){
-    Motor.tilt_left(move_speed);
-    delay(250); // wait for tilting
-    break;
-  }
+    // ====================================================================
+    // Emergency stop: obstacle detected directly ahead
+    // ====================================================================
+    if (frontDistance < FRONT_WALL_THRESHOLD) {
+      motor.stop();
+    }
 
-  /// Right-hand Wall Following Logic
-  if (right_dis > Side_Wall) {
-    // Turn right 90 deg if no wall on the Right
-    delay(500); // wait to pass the edge
-    Motor.turn_right(move_speed);
-    delay(1000); // wait for the 90deg turn
-    Motor.move_forward(move_speed);
-    delay(3000); // wait to move forward one block
-  } 
-  else if (front_dis < Front_Wall && right_dis < Side_Wall) {
-    // Turn 180 deg if wall Ahead and on the Right
-    delay(500); // wait to pass the edge
-    Motor.turn_around(move_speed);
-    delay(2000); // wait for the 180deg turn
-  } 
-  else {
-    // Move forward 
-    Motor.move_forward(move_speed);
-  }
+    // ====================================================================
+    // Balancing logic: Keep robot centered between left and right walls
+    // (tolerance: 10mm difference)
+    // ====================================================================
+    int distanceDifference = rightDistance - leftDistance;
+    if (distanceDifference > 10) {
+      // Right side is farther away - tilt right to center
+      motor.tiltRight(MOTOR_SPEED);
+      delay(250);  // Allow time for adjustment
+      break;
+    } else if (distanceDifference < -10) {
+      // Left side is farther away - tilt left to center
+      motor.tiltLeft(MOTOR_SPEED);
+      delay(250);  // Allow time for adjustment
+      break;
+    }
 
-  delay(200);
+    // ====================================================================
+    // Right-hand wall following algorithm
+    // Strategy: Keep right hand on wall and turn when opening is found
+    // ====================================================================
+    if (rightDistance > SIDE_WALL_THRESHOLD) {
+      // No wall on right side - opening detected, turn right 90 degrees
+      delay(500);                        // Wait to clear previous position
+      motor.turnRight(MOTOR_SPEED);
+      delay(1000);                       // Wait for 90 degree turn to complete
+      motor.moveForward(MOTOR_SPEED);
+      delay(3000);                       // Move forward one maze block
+    } else if (frontDistance < FRONT_WALL_THRESHOLD && rightDistance < SIDE_WALL_THRESHOLD) {
+      // Wall ahead AND wall on right - dead end detected, turn around 180 degrees
+      delay(500);                        // Wait to clear previous position
+      motor.turnAround(MOTOR_SPEED);
+      delay(2000);                       // Wait for 180 degree turn to complete
+    } else {
+      // Default behavior: corridor is clear ahead, move forward
+      motor.moveForward(MOTOR_SPEED);
+    }
+
+    delay(200);  // Main control loop cycle time
   }
 }
+
