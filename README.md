@@ -1,8 +1,11 @@
 # Maze Solver Robot 
 
 Mechatronic Project: Maze Solver Robot
+
 Furtwangen University - Biomedical Engineering - WS25/26
+
 By: Mehdi Farzaneh
+
 Supervisors: Dr. Kretschmer, Dr. Kubon
 
 ---
@@ -14,20 +17,11 @@ An autonomous maze-solving robot that uses ultrasound sensors and wall-following
 
 ### Sensors
 - **Ultrasound Sensors x3** (HC-SR04 compatible)
-  - Right sensor: Trigger pin 2, Echo pin 3
-  - Mid sensor: Trigger pin 4, Echo pin 5
-  - Left sensor: Trigger pin 6, Echo pin 7
-  - Range: ~75mm (configurable via Side_Wall and Front_Wall constants)
   
 - **Photo Resistor Sensor**
-  - Pin: A0
-  - Used to detect black spot (end point) - triggers when resistance > 350Ω
 
 ### Actuators
 - **DC Motors x2** with gear
-  - Right motor: Direction pins 8-9, PWM pin 10
-  - Left motor: Direction pins 7-12, PWM pin 11
-  - Motor speed: 65 PWM (configurable via move_speed constant)
   
 - **Motor Driver**: L298N
 
@@ -38,7 +32,6 @@ An autonomous maze-solving robot that uses ultrasound sensors and wall-following
 
 ### Optional
 - **Time of Flight (ToF) Sensors x3** (if ToF is preferred over ultrasound)
-  - Can be enabled by uncommenting the ToF code in setup()
 
 ---
 
@@ -73,27 +66,9 @@ The robot implements a right-hand wall following algorithm:
 5. **Move Forward** - Default behavior when no obstacles or turns needed
 6. **Stop** - When photo resistor detects black spot (resistance >350Ω)
 
-### Movement Functions
-- `move_forward()` - Move straight
-- `turn_right()` - 90° right turn
-- `turn_around()` - 180° turn
-- `tilt_left()` - Slight left adjustment
-- `tilt_right()` - Slight right adjustment
-- `Stop()` - Emergency stop
-
 ---
 
-## Configurable Parameters
-
-```cpp
-#define Side_Wall 75        // Distance threshold for side walls (mm)
-#define Front_Wall 75       // Distance threshold for front wall (mm)
-#define Low_Resistance 350  // Photo resistor threshold for black spot detection
-#define move_speed 65       // Motor PWM speed (0-255)
-```
-
 **Calibration**: Side_Wall and Front_Wall thresholds should be calibrated based on your hardware setup.
-
 ---
 
 ## Objective
