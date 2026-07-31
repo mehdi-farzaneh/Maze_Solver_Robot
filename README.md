@@ -1,14 +1,13 @@
-# Maze Solver Robot - HFU 2025/26
+# Maze Solver Robot 
 
 Mechatronic Project: Maze Solver Robot
 Furtwangen University - Biomedical Engineering - WS25/26
-
 By: Mehdi Farzaneh
+Supervisors: Dr. Kretschmer, Dr. Kubon
 
 ---
 ## Overview
 An autonomous maze-solving robot that uses ultrasound sensors and wall-following algorithm to navigate through mazes independently.
-
 ---
 
 ## Hardware Components
