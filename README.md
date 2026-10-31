@@ -2,9 +2,9 @@
 
 This project was developed as part of the "Mechatronic Project" lecture. If this work is intended for a thesis, manuscript, or academic submission, please add the relevant authors and institutional affiliation below.
 
-Author: Mohammad Mehdi Farzaneh
-Affiliation: Faculty of Engineering and Technology, Furtwangen University
-Supervisors: Dr. Kretschmer, Dr. Kubon
+- Author: Mohammad Mehdi Farzaneh
+- Affiliation: Faculty of Engineering and Technology, Furtwangen University
+- Supervisors: Dr. Kretschmer, Dr. Kubon
 
 ---
 ## Overview
