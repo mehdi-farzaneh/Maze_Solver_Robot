@@ -1,11 +1,9 @@
 # Maze Solver Robot 
 
-Mechatronic Project: Maze Solver Robot
+This project was developed as part of the "Mechatronic Project" lecture. If this work is intended for a thesis, manuscript, or academic submission, please add the relevant authors and institutional affiliation below.
 
-Furtwangen University - Biomedical Engineering - WS25/26
-
-By: Mehdi Farzaneh
-
+Author: Mohammad Mehdi Farzaneh
+Affiliation: Faculty of Engineering and Technology, Furtwangen University
 Supervisors: Dr. Kretschmer, Dr. Kubon
 
 ---
@@ -73,3 +71,4 @@ The robot implements a right-hand wall following algorithm:
 
 ## Objective
 The robot autonomously solves the maze by following the right-hand wall and stops when it reaches the black spot (finish line).
+
